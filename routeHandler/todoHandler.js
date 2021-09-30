@@ -15,7 +15,8 @@ router.get('/', async (req, res) => {
                 _id: 0,
                 date: 0,
             })
-            .limit(1);
+            .limit(10);
+
         res.status(200).json({ result: data, message: 'success' });
     } catch (err) {
         res.status(500).json({ error: 'There was aserver side error!' });
@@ -37,7 +38,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // post a todo
-router.post('/', async (req, res) => {
+router.post('/', (req, res) => {
     const newTodo = new Todo(req.body);
     newTodo.save((err) => {
         if (err) {
@@ -49,7 +50,7 @@ router.post('/', async (req, res) => {
 });
 
 // post multiple todo
-router.post('/:all', async (req, res) => {
+router.post('/:all', (req, res) => {
     Todo.insertMany(req.body, (err) => {
         if (err) {
             res.status(500).json({ error: 'There was aserver side error!' });
