@@ -1,9 +1,12 @@
 const express = require('express');
 const mongoose = require('mongoose');
+const dotenv = require('dotenv');
 const todoHandler = require('./routeHandler/todoHandler');
+const userHandler = require('./routeHandler/userHandler');
 
 // initialize the app
 const app = express();
+dotenv.config();
 app.use(express.json());
 
 // detabase connection with mongoose
@@ -14,6 +17,7 @@ mongoose
 
 // application routs
 app.use('/todo', todoHandler);
+app.use('/user', userHandler);
 
 // default error handler
 const errorHandler = (err, req, res, next) => {
