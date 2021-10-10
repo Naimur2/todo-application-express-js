@@ -3,17 +3,18 @@ const mongoose = require('mongoose');
 
 const router = express.Router();
 const todoSchema = require('../schemas/todoSchema');
+const userSchema = require('../schemas/userSchema');
 const checkLogin = require('../middlewares/checkLogin');
 
 // create model
 const Todo = new mongoose.model('Todo', todoSchema);
+const User = new mongoose.model('User', userSchema);
 
 // get all todos
 router.get('/', checkLogin, async (req, res) => {
     try {
-        console.log(req.username)
-        console.log(req.userId)
-        const data = await Todo.find({ status: 'active' })
+        const data = await Todo.find({})
+            .populate('user')
             .select({
                 _id: 0,
                 date: 0,
@@ -41,19 +42,31 @@ router.get('/:id', async (req, res) => {
 });
 
 // post a todo
-router.post('/', (req, res) => {
-    const newTodo = new Todo(req.body);
-    newTodo.save((err) => {
-        if (err) {
-            res.status(500).json({ error: 'There was aserver side error!' });
-        } else {
-            res.status(200).json({ message: 'Todo was saved successfully' });
-        }
+router.post('/', checkLogin, async (req, res) => {
+    const newTodo = new Todo({
+        ...req.body,
+        user: req.userId,
     });
+    try {
+        const todo = await newTodo.save();
+        await User.updateOne(
+            {
+                _id: req.userId,
+            },
+            {
+                $push: {
+                    todos: todo._id,
+                },
+            }
+        );
+        res.status(200).json({ message: 'Todo was saved successfully' });
+    } catch (err) {
+        res.status(500).json({ error: 'There was aserver side error!' });
+    }
 });
 
 // post multiple todo
-router.post('/:all', (req, res) => {
+router.post('/:all', checkLogin, (req, res) => {
     Todo.insertMany(req.body, (err) => {
         if (err) {
             res.status(500).json({ error: 'There was aserver side error!' });
@@ -64,7 +77,7 @@ router.post('/:all', (req, res) => {
 });
 
 // update todo
-router.put('/:id', async (req, res) => {
+router.put('/:id', checkLogin, async (req, res) => {
     try {
         const result = await Todo.findByIdAndUpdate(
             { _id: req.params.id },
@@ -85,11 +98,22 @@ router.put('/:id', async (req, res) => {
 });
 
 // delete todo
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', checkLogin, async (req, res) => {
     try {
         await Todo.deleteOne({ _id: req.params.id });
         res.status(200).json({ message: 'Todo was deleted successfully' });
     } catch (err) {
+        res.status(500).json({ error: 'There was a server side error!' });
+    }
+});
+
+// delete all todo
+router.delete('/', checkLogin, async (req, res) => {
+    try {
+        await Todo.deleteMany({ status: 'inactive' });
+        res.status(200).json({ message: 'Todo were deleted successfully' });
+    } catch (err) {
+        console.log(err);
         res.status(500).json({ error: 'There was a server side error!' });
     }
 });

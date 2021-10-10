@@ -29,31 +29,48 @@ router.get('/signup', async (req, res) => {
 // login user
 
 router.get('/login', async (req, res) => {
-    const user = await User.find({ username: req.body.username });
-    if (user && user.length > 0) {
-        const isValidPassword = await bcrypt.compare(req.body.password, user[0].password);
-        if (isValidPassword) {
-            // generate Token
-            const token = jwt.sign(
-                {
-                    username: user[0].username,
-                    userId: user[0]._id,
-                },
-                process.env.JWT_SECRET,
-                {
-                    expiresIn: '1h',
-                }
-            );
+    try {
+        const user = await User.find({ username: req.body.username });
 
-            res.status(200).json({
-                access_token: token,
-                message: 'Login Successfull',
-            });
+        if (user && user.length > 0) {
+            const isValidPassword = await bcrypt.compare(req.body.password, user[0].password);
+            if (isValidPassword) {
+                // generate Token
+                const token = jwt.sign(
+                    {
+                        username: user[0].username,
+                        userId: user[0]._id,
+                    },
+                    process.env.JWT_SECRET,
+                    {
+                        expiresIn: '1h',
+                    }
+                );
+
+                res.status(200).json({
+                    access_token: token,
+                    message: 'Login Successfull',
+                });
+            } else {
+                res.status(401).json({ error: 'Authentication failed!' });
+            }
         } else {
             res.status(401).json({ error: 'Authentication failed!' });
         }
-    } else {
-        res.status(401).json({ error: 'Authentication failed!' });
+    } catch (err) {
+        res.status(500).json({ error: 'There was a server side error!' });
+    }
+});
+
+router.get('/all', async (req, res) => {
+    try {
+        const users = await User.find({}).populate('todos');
+        res.status(200).json({
+            data: users,
+            message: 'Successfull',
+        });
+    } catch (err) {
+        res.status(500).json({ error: 'There was a server side error!' });
     }
 });
 
